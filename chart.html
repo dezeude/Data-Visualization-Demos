@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scatterplot from CSV</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+    <canvas id="scatterChart"></canvas>
+    
+    <script>
+        fetch('res/xyz_gaussian_clusters250129.csv')
+            .then(response => response.text())
+            .then(csvData => {
+                Papa.parse(csvData, {
+                    header: true,
+                    dynamicTyping: true,
+                    complete: function(results) {
+                        const data = results.data;
+                        const scatterData = data.map(row => ({ x: row.x, y: row.y })).filter(d => d.x !== undefined && d.y !== undefined);
+                        renderChart(scatterData);
+                    }
+                });
+            });
+        
+        function renderChart(data) {
+            const ctx = document.getElementById('scatterChart').getContext('2d');
+            const scatterChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Scatter Plot',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { type: 'linear', position: 'bottom' },
+                        y: { type: 'linear' }
+                    }
+                }
+            });
+
+            document.addEventListener('wheel', function(event) {
+                if (event.deltaY > 0) {
+                    scatterChart.options.scales.x.max += 10;
+                } else {
+                    scatterChart.options.scales.x.max -= 10;
+                }
+                scatterChart.update();
+            });
+        }
+    </script>
+</body>
+</html>
