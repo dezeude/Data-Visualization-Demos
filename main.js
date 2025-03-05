@@ -1,7 +1,7 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as midi from './midi.js'
 
-
+let clusterBtn = document.getElementById('cluster');
 // set the dimensions and margins of the graph
 const margin = { top: 10, right: 30, bottom: 30, left: 60 },
     width = 460 - margin.left - margin.right,
@@ -16,16 +16,16 @@ const svg = d3.select("#my_dataviz")
     .attr("transform",
         `translate(${margin.left}, ${margin.top})`);
 
-let byteRange = 1000;
+let byteRange = 1000000;
 init()
 async function init() {
     midi.getPermission()
     await navigator.requestMIDIAccess().then((midiAccess) => {
-        d3.csv("res/xyz_gaussian_clusters250129.csv", { headers: { "Range": `bytes = 0 - ${byteRange}` } }, d3.autoType).then(async function (data) {
-            data = data.map((d) => [
-                d[Object.keys(d)[1]],
-                d[Object.keys(d)[2]],
-            ]);
+        d3.csv("res/xyz_gaussian_clusters250129.csv", { headers: { "Range": `bytes = 0 - ${byteRange}` } }, d3.autoType).then(async function (rawData) {
+            let data = rawData.map(d => ({
+                x: d[Object.keys(d)[1]],
+                y: d[Object.keys(d)[2]]
+            }));
             console.log(data)
             let xRange = [3, 2000];
             let yRange = [0, 2000];
@@ -46,13 +46,15 @@ async function init() {
                 // .attr("transform", `translate(0, ${width})`)
                 .call(d3.axisLeft(y));
 
+            let k = 3;
+
             // Add dots
             svg.append('g')
                 .selectAll("dot")
                 .data(data)
                 .join("circle")
-                .attr("cx", (d) => x(d[0]))
-                .attr("cy", (d) => y(d[1]))
+                .attr("cx", d => x(d.x))
+                .attr("cy", d => y(d.y))
                 .attr("r", psize)
                 .style("fill", "#69b3a2")
 
@@ -78,8 +80,8 @@ async function init() {
                     .data(data)
                     // .transition()
                     // .duration(0)
-                    .attr("cx", (d) => x(d[0]))
-                    .attr("cy", (d) => y(d[1]))
+                    .attr("cx", d => x(d.x))
+                    .attr("cy", d => y(d.y))
             }
 
             //attached to input element
@@ -103,8 +105,8 @@ async function init() {
                     .data(data)
                     // .transition()
                     // .duration(0)
-                    .attr("cx", (d) => x(d[0]))
-                    .attr("cy", (d) => y(d[1]))
+                    .attr("cx", d => x(d.x))
+                    .attr("cy", d => y(d.y))
             }
 
             function updatePointSize(value = 1) {
@@ -119,7 +121,92 @@ async function init() {
                     .attr("r", psize)
             }
 
-            // await console.log(navigator.userAgent)
+            function drawkMeans(data, assignments = [], centroids = []) {
+                svg.selectAll("circle").remove();
+                svg.selectAll("rect").remove();
+
+                let color = d3.scaleOrdinal(d3.schemeCategory10);
+
+                // Plot data points
+                svg.selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("cx", d => x(d.x))
+                    .attr("cy", d => y(d.y))
+                    .attr("r", psize)
+                    .style("fill", (d, i) => assignments.length ? color(assignments[i]) : "#69b3a2");
+
+                // Plot centroids
+                svg.selectAll("rect")
+                    .data(centroids)
+                    .enter()
+                    .append("rect")
+                    .attr("x", d => x(d.x) - 5)
+                    .attr("y", d => y(d.y) - 5)
+                    .attr("width", 10)
+                    .attr("height", 10)
+                    .attr("fill", "black");
+            }
+
+            function kMeansClustering(data, k, maxIterations = 100) {
+                console.log('here')
+                console.log(data)
+                console.log(k)
+                let centroids = data.slice(0).sort(() => Math.random() - 0.5).slice(0, k);
+                let assignments = new Array(data.length);
+                let converged = false;
+                let iterations = 0;
+
+                while (!converged && iterations < maxIterations) {
+                    converged = true;
+
+                    // Assign points to nearest centroid
+                    for (let i = 0; i < data.length; i++) {
+                        let minDist = Infinity, clusterIndex = -1;
+                        for (let j = 0; j < k; j++) {
+                            let dist = Math.hypot(data[i].x - centroids[j].x, data[i].y - centroids[j].y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                clusterIndex = j;
+                            }
+                        }
+                        if (assignments[i] !== clusterIndex) {
+                            assignments[i] = clusterIndex;
+                            converged = false;
+                        }
+                    }
+
+                    // Compute new centroids
+                    let newCentroids = Array.from({ length: k }, () => ({ x: 0, y: 0, count: 0 }));
+                    console.log(newCentroids)
+                    for (let i = 0; i < data.length; i++) {
+                        let clusterIndex = assignments[i];
+                        newCentroids[clusterIndex].x += data[i].x;
+                        newCentroids[clusterIndex].y += data[i].y;
+                        newCentroids[clusterIndex].count++;
+                    }
+                    for (let j = 0; j < k; j++) {
+                        if (newCentroids[j].count > 0) {
+                            centroids[j] = {
+                                x: newCentroids[j].x / newCentroids[j].count,
+                                y: newCentroids[j].y / newCentroids[j].count
+                            };
+                        }
+                    }
+
+                    iterations++;
+                }
+                return { centroids, assignments };
+            }
+
+            clusterBtn.addEventListener('click', () => {
+                let { centroids, assignments } = kMeansClustering(data, k);
+                drawkMeans(data, assignments, centroids);
+            });
+
+
+            //MIDI Input Mapping
             console.log(midiAccess)
             midi.listInputsAndOutputs(midiAccess);
             let delta = 1;
@@ -184,6 +271,9 @@ async function init() {
                 }
                 else if (event.data[0] === 0xe7 && event.data[1] === 0x0) {
                     delta = event.data[2];
+                }
+                else if (event.data[0] === 0xe0 && event.data[1] === 0x0) {
+                    k = Math.floor(event.data[2] / 40);
                 }
             })
 
