@@ -66,4 +66,4 @@ function startLoggingMIDIInput(midiAccess, callback) {
 
 export { getPermission, onMIDISuccess, onMIDIFailure, listInputsAndOutputs, startLoggingMIDIInput, ctx };
 
-// Test
+// Testing github commands
