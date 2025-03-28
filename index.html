@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VMX8 Controller</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module" src="main.js"></script>
 </head>
 
@@ -14,8 +16,18 @@
     <input type="number" id="buttonYlim" value=2000> -->
 
     <!-- Create a div where the graph will take place -->
-    <div id="my_dataviz"></div>
-
+    <div id="top">
+        <div id="my_dataviz"></div>
+        <!-- Toast will fade eveytime it has a message -->
+        <div class="toast"></div>
+        <div id="dendrogram"></div>
+    </div>
+    <!-- <canvas id="canvas"></canvas> -->
+    <div id="buttons">
+        <button id="k-means-cluster">K means Cluster</button>
+        <button id="hier-cluster">Hierarchical Cluster</button>
+        <button id="reset">Reset</button>
+    </div>
 </body>
 
 </html>
