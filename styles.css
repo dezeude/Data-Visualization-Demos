@@ -1,0 +1,11 @@
+div#top{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+div#buttons{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
