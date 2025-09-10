@@ -16,7 +16,7 @@ const svg = d3.select("#my_dataviz")
     .attr("transform",
         `translate(${margin.left}, ${margin.top})`);
 
-const minRange = 100;
+const minRange = 1000;
 const maxRange = 1_000_000;
 const byteRange = parseInt(prompt(`Enter the Byte Range: a value between ${minRange} and ${maxRange}`));
 
