@@ -20,7 +20,10 @@ const minRange = 100;
 const maxRange = 100_000;
 const byteRange = parseInt(prompt(`Enter a value between ${minRange} and ${maxRange}`));
 
-if (byteRange < minRange || byteRange > maxRange) throw new Error();
+if (byteRange < minRange || byteRange > maxRange) {
+    alert('Error with input! Please try again..')
+    throw new Error(`Input must be between ${minRange} and ${maxRange}`);
+};
 
 init()
 async function init() {
