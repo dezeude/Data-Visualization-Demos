@@ -17,8 +17,8 @@ const svg = d3.select("#my_dataviz")
         `translate(${margin.left}, ${margin.top})`);
 
 const minRange = 100;
-const maxRange = 100_000;
-const byteRange = parseInt(prompt(`Enter a value between ${minRange} and ${maxRange}`));
+const maxRange = 1_000_000;
+const byteRange = parseInt(prompt(`Enter the Byte Range: a value between ${minRange} and ${maxRange}`));
 
 if (byteRange < minRange || byteRange > maxRange) {
     alert('Error with input! Please try again..')
