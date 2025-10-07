@@ -1,6 +1,7 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as midi from './midi.js'
 
+let lastClickedClusterBtn = ""; // "k" or "hi"
 let kClusterBtn = document.getElementById('k-means-cluster');
 let hiClusterBtn = document.getElementById('hier-cluster');
 let resetBtn = document.getElementById('reset');
@@ -237,12 +238,13 @@ async function init() {
             resetBtn.addEventListener('click', reset)
 
             kClusterBtn.addEventListener('click', () => {
+                lastClickedClusterBtn = 'k';
                 let { centroids, assignments } = kMeansClustering(data, k);
                 drawkMeans(data, assignments, centroids);
             });
 
             hiClusterBtn.addEventListener('click', function () {
-
+                lastClickedClusterBtn = 'hi'
                 // Compute hierarchical clustering using Euclidean distance
                 function euclideanDist(a, b) {
                     return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
@@ -431,9 +433,13 @@ async function init() {
                     if (k < 0) k = 0;
                     kValEl.value = k;
                     last_height = new_height;
-                    // updateColors(k);
-                    let { centroids, assignments } = kMeansClustering(data, k);
-                    drawkMeans(data, assignments, centroids);
+                    if (lastClickedClusterBtn === 'k') {
+                        let { centroids, assignments } = kMeansClustering(data, k);
+                        drawkMeans(data, assignments, centroids);
+                    }
+                    else if (lastClickedClusterBtn === 'hi') {
+                        updateColors(k);
+                    }
                 }
             })
 
