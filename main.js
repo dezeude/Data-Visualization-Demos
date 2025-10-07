@@ -1,10 +1,7 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as midi from './midi.js'
 
-let kClusterBtn = document.getElementById('k-means-cluster');
-let hiClusterBtn = document.getElementById('hier-cluster');
-let resetBtn = document.getElementById('reset');
-let kValEl = document.getElementById('k-val');
+let clusterBtn = document.getElementById('cluster');
 // set the dimensions and margins of the graph
 const margin = { top: 10, right: 30, bottom: 30, left: 60 },
     width = 460 - margin.left - margin.right,
@@ -33,13 +30,9 @@ async function init() {
     midi.getPermission()
     await navigator.requestMIDIAccess().then((midiAccess) => {
         d3.csv("res/xyz_gaussian_clusters250129.csv", { headers: { "Range": `bytes = 0 - ${byteRange}` } }, d3.autoType).then(async function (rawData) {
-            console.log(rawData)
-            const hColorScale = d3.scaleLinear().domain([0, rawData.length]).range(d3.schemeCategory10);
-            let data = rawData.map((d, i) => ({
+            let data = rawData.map(d => ({
                 x: d[Object.keys(d)[1]],
-                y: d[Object.keys(d)[2]],
-                color: hColorScale(i),
-                colors: []
+                y: d[Object.keys(d)[2]]
             }));
             console.log(data)
             let xRange = [3, 2000];
@@ -61,13 +54,7 @@ async function init() {
                 // .attr("transform", `translate(0, ${width})`)
                 .call(d3.axisLeft(y));
 
-            let k = 0;
-            kValEl.value = k;
-            kValEl.addEventListener("input", (event) => {
-                k = parseInt(event.target.value, 10);
-                console.log(k);
-                updateColors(k);
-            });
+            let k = 3;
 
             // Add dots
             svg.append('g')
@@ -79,13 +66,7 @@ async function init() {
                 .attr("r", psize)
                 .style("fill", "#69b3a2")
 
-            function reset() {
-                psize = 5;
-                svg.selectAll("circle")
-                    .attr('r', psize)
-                    .style("fill", "#69b3a2")
-                svg.selectAll('rect').remove()
-            }
+
             //attached to input element
             function updateXRange(value = [0, 0]) {
                 // Get the value of the button
@@ -100,8 +81,7 @@ async function init() {
 
                 // Update X axis
                 x.domain(xRange)
-                // xAxis.transition().duration(1000).call(d3.axisBottom(x))
-                xAxis.call(d3.axisBottom(x))
+                xAxis.transition().duration(1000).call(d3.axisBottom(x))
 
                 // Update chart
                 svg.selectAll("circle")
@@ -126,8 +106,8 @@ async function init() {
 
                 // Update Y axis
                 y.domain(yRange)
-                // yAxis.transition().duration(1000).call(d3.axisLeft(y))
-                yAxis.call(d3.axisLeft(y))
+                yAxis.transition().duration(1000).call(d3.axisLeft(y))
+
                 // Update chart
                 svg.selectAll("circle")
                     .data(data)
@@ -228,131 +208,9 @@ async function init() {
                 return { centroids, assignments };
             }
 
-            function updateColors(val) {
-                svg.selectAll("circle")
-                    .data(data)
-                    .style("fill", (d) => d.colors[val]) // TODO
-            }
-
-            resetBtn.addEventListener('click', reset)
-
-            kClusterBtn.addEventListener('click', () => {
+            clusterBtn.addEventListener('click', () => {
                 let { centroids, assignments } = kMeansClustering(data, k);
                 drawkMeans(data, assignments, centroids);
-            });
-
-            hiClusterBtn.addEventListener('click', function () {
-
-                // Compute hierarchical clustering using Euclidean distance
-                function euclideanDist(a, b) {
-                    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-                }
-                //mix 2 rgb string colors
-                function mixColors(c1, c2) {
-                    // Function to extract RGB values from a string
-                    function extractRGB(color) {
-                        const match = color.match(/\d+/g).map(Number);
-                        return { r: match[0], g: match[1], b: match[2] };
-                    }
-
-                    const color1 = extractRGB(c1);
-                    const color2 = extractRGB(c2);
-
-                    // Compute the average of each color channel and round
-                    const mixedColor = {
-                        r: Math.round((color1.r + color2.r) / 2),
-                        g: Math.round((color1.g + color2.g) / 2),
-                        b: Math.round((color1.b + color2.b) / 2)
-                    };
-
-                    return `rgb(${mixedColor.r}, ${mixedColor.g}, ${mixedColor.b})`;
-                }
-                function clusterDist(a, b) {
-                    let sumDist = 0;
-                    for (let i = 0; i < a.points.length; i++) {
-                        for (let j = 0; j < b.points.length; j++) {
-                            sumDist += euclideanDist(a.points[i], b.points[j]);
-                        }
-                    }
-                    return sumDist / (a.points.length + b.points.length);
-
-                }
-                // keep this!!..
-                function hierarchicalClustering(data) {
-                    // Initialize each point to be its own cluster.
-                    let clusters = data.map((d, i) => ({ points: [{ id: i, x: d.x, y: d.y, colors: [] }] }));
-                    // TODO/Suggestion: Could remove points object and just have clusters be a 2D array.
-                    // TODO/Suggestion: Instead of making a new variable, just use clusters array.
-                    // Each row is a cluster with the elements (column at that row) being a point.
-                    // console.log(structuredClone(clusters));
-
-                    while (clusters.length > 1) {
-                        let minDist = Infinity;
-                        let mergeA = -1, mergeB = -1;
-
-                        //Step 1: create distance matrix
-                        // const dMat = clusters.map((clust, i, arr) => new Array(arr.length))
-                        const dMat = new Array(clusters.length);
-                        for (let i = 0; i < clusters.length; i++) {
-                            dMat[i] = new Array(clusters.length);
-                            for (let j = 0; j < clusters.length; j++) {
-                                dMat[i][j] = 0;
-                                if (i == j) continue
-                                else if (i > j)
-                                    // If we're under the diagonal, then use the symmetric value
-                                    dMat[i][j] = dMat[j][i]
-                                else
-                                    dMat[i][j] = clusterDist(clusters[i], clusters[j]);
-
-                                // Step 2: Find minimum in distance matrix
-                                if (dMat[i][j] < minDist) {
-                                    minDist = dMat[i][j];
-                                    mergeA = i;
-                                    mergeB = j;
-                                }
-                            }
-                        }
-
-                        //After each distance matrix (step in clustering), assign each point a color for that matrix.
-                        //Make a linear color scale with the number of clusters.
-                        const colorScale = d3.scaleLinear([0, clusters.length], d3.schemeCategory10);
-                        for (let i = 0; i < clusters.length; i++) {
-                            for (let p = 0; p < clusters[i].points.length; p++) {
-                                clusters[i].points[p].colors.push(colorScale(i));
-                            }
-                        }
-
-                        // console.log(dMat);
-                        // console.log(`Found minimum distance @ clusters ${mergeA} and ${mergeB}`);
-                        // console.log(`Minimum Distance is ${minDist}`);
-
-                        //Step 3: combine clusters
-                        //make sure A comes before B in the array
-                        if (mergeA > mergeB) {
-                            //swap A and B
-                            let temp = mergeA;
-                            mergeA = mergeB;
-                            mergeB = temp;
-                        }
-                        //Append cluster B's points into cluster A's 
-                        clusters[mergeA].points.push(...clusters[mergeB].points);
-                        //delete cluster B
-                        clusters.splice(mergeB, 1);
-                        // console.log(structuredClone(clusters));
-                        console.log(`${clusters.length} Clusters left`)
-                    }
-
-                    return clusters[0]; //Only one cluster after algo
-                }
-
-                //TODO: put clusters data into data
-                console.log(data);
-                let clustOutput = hierarchicalClustering(data);
-                console.log('Done!') // Or maybe window.alert?
-                console.log(clustOutput);
-                clustOutput.points.forEach((point) => {
-                    data[point.id].colors = point.colors;
-                })
             });
 
 
@@ -360,9 +218,8 @@ async function init() {
             console.log(midiAccess)
             midi.listInputsAndOutputs(midiAccess);
             let delta = 1;
-            let last_height = 1;
             midi.startLoggingMIDIInput(midiAccess, (event) => {
-                // console.log(event.data)
+                console.log(event.data)
                 // TODO: Use Hashmap for all control bindings.
                 if (event.data[0] === 0xb0) {
                     //turn knobs
