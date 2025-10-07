@@ -19,8 +19,15 @@ const svg = d3.select("#my_dataviz")
     .attr("transform",
         `translate(${margin.left}, ${margin.top})`);
 
-// let byteRange = Math.round(10000 / 3);
-let byteRange = 1000000;
+const minRange = 1000;
+const maxRange = 1_000_000;
+const byteRange = parseInt(prompt(`Enter the Byte Range: a value between ${minRange} and ${maxRange}`));
+
+if (byteRange < minRange || byteRange > maxRange) {
+    alert('Error with input! Please try again..')
+    throw new Error(`Input must be between ${minRange} and ${maxRange}`);
+};
+
 init()
 async function init() {
     midi.getPermission()
