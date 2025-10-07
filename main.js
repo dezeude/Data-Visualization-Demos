@@ -424,7 +424,9 @@ async function init() {
                     if (k < 0) k = 0;
                     kValEl.value = k;
                     last_height = new_height;
-                    updateColors(k);
+                    // updateColors(k);
+                    let { centroids, assignments } = kMeansClustering(data, k);
+                    drawkMeans(data, assignments, centroids);
                 }
             })
 
